@@ -7,8 +7,11 @@ export default function RootLayout() {
         headerShown: false,
       }}
     >
+      {/* Login Screen */}
       <Stack.Screen name="login" />
-      <Stack.Screen name="home" />
+
+      {/* Tabs Navigator Folder */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
 }
