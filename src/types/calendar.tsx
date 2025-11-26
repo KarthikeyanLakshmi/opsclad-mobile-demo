@@ -3,6 +3,7 @@ export interface PTORecord {
   date: string
   day: string
   hours: number
+  activity?: string;
   employee_name: string
   employee_id: string
   sender_email: string

@@ -1,18 +1,21 @@
-import Constants from "expo-constants";
-const API_BASE = Constants.expoConfig?.extra?.apiBaseUrl;
+import { supabase } from "../lib/supabase";
 
 export async function loginEmployee(email: string, password: string) {
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
 
-  const json = await res.json();
+  if (error) throw new Error(error.message);
 
-  if (!res.ok) {
-    throw new Error(json.message);
+  // Ensure session persists in RN
+  if (data.session) {
+    await supabase.auth.setSession(data.session);
   }
 
-  return json;
+  return data;
+}
+
+export async function logoutEmployee() {
+  await supabase.auth.signOut();
 }

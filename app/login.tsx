@@ -1,9 +1,10 @@
-// app/login.tsx (or app/login/index.tsx depending on your structure)
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import { View, Text, TextInput, Button, Alert, StyleSheet, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { loginEmployee } from "../src/api/auth";
 import { LoadingOverlay } from "../src/components/loadingOverlay";
+
+const logo = require("../assets/images/opsclad-logo.png");
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,16 +23,10 @@ export default function LoginScreen() {
       setLoading(true);
 
       const result = await loginEmployee(email, password);
-      // result = { user, session } from Supabase
 
-      // Wait for Supabase session to persist on device
       await new Promise((res) => setTimeout(res, 300));
 
-      // Navigate to correct tab route and pass email if you want to show it
-      router.replace({
-        pathname: "/(tabs)/home",
-        params: { email: result.user.email },
-      });
+      router.replace("/(tabs)/home");
     } catch (err: any) {
       Alert.alert("Login Failed", err.message);
     } finally {
@@ -43,13 +38,17 @@ export default function LoginScreen() {
     <View style={styles.container}>
       {loading && <LoadingOverlay />}
 
-      <Text style={styles.title}>OpsClad Login</Text>
+      {/* Logo */}
+      <Image source={logo} style={styles.logo} resizeMode="contain" />
+
+      <Text style={styles.title}>Welcome to OpsClad</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Email"
-        autoCapitalize="none"
+        placeholderTextColor="#cccccc"
         keyboardType="email-address"
+        autoCapitalize="none"
         onChangeText={setEmail}
         value={email}
       />
@@ -57,6 +56,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor="#cccccc"
         secureTextEntry
         onChangeText={setPassword}
         value={password}
@@ -72,18 +72,34 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 100, padding: 24 },
+  container: { 
+    flex: 1,
+    backgroundColor: "#0A1A4F", // dark blue
+    padding: 24,
+    justifyContent: "center"
+  },
+
+  logo: {
+    width: "70%",
+    height: 120,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+
   title: {
     fontSize: 28,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 40,
+    color: "white",
   },
+
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "white",
     padding: 14,
     borderRadius: 8,
     marginBottom: 15,
+    color: "white",
   },
 });
