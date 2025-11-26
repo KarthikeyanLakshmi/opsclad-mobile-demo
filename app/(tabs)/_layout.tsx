@@ -10,6 +10,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: "#999",
       }}
     >
+      {/* HOME */}
       <Tabs.Screen
         name="home"
         options={{
@@ -20,6 +21,29 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* TASK TRACKER */}
+      <Tabs.Screen
+        name="task-tracker"
+        options={{
+          tabBarLabel: "Tasks",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="list-outline" size={24} color={color} />
+          ),
+        }}
+      />
+
+      {/* LEAVE TRACKER */}
+      <Tabs.Screen
+        name="leave-tracker"
+        options={{
+          tabBarLabel: "Leave",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="calendar-outline" size={24} color={color} />
+          ),
+        }}
+      />
+
+      {/* PROFILE */}
       <Tabs.Screen
         name="profile"
         options={{
