@@ -63,16 +63,14 @@ export default function TabsLayout() {
     setLoading(false);
   }
 
-  // -------------------------
   // DRAWER ANIMATION
-  // -------------------------
   const openDrawer = () => {
     setDrawerVisible(true);
     Animated.timing(drawerAnim, {
       toValue: 0,
       duration: 250,
       easing: undefined,
-      useNativeDriver: false, // IMPORTANT
+      useNativeDriver: false,
     }).start();
   };
 
@@ -81,22 +79,16 @@ export default function TabsLayout() {
       toValue: SCREEN_WIDTH,
       duration: 250,
       easing: undefined,
-      useNativeDriver: false, // IMPORTANT
+      useNativeDriver: false, 
     }).start(() => setDrawerVisible(false));
   };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* ======================== */}
-      {/* OVERLAY */}
-      {/* ======================== */}
       {drawerVisible && (
         <TouchableOpacity style={styles.overlay} onPress={closeDrawer} />
       )}
 
-      {/* ======================== */}
-      {/* RIGHT SIDE DRAWER */}
-      {/* ======================== */}
       <Animated.View style={[styles.drawer, { transform: [{ translateX: drawerAnim }] }]}>
         {/* Header */}
         <View style={styles.drawerHeader}>
@@ -150,9 +142,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* ======================== */}
       {/* MAIN TABS */}
-      {/* ======================== */}
       <Tabs
         screenOptions={{
           headerShown: true,
@@ -196,7 +186,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="home"
           options={{
-            tabBarLabel: "Home",
+            tabBarLabel: "",
             tabBarIcon: ({ color }) => (
               <Ionicons name="home-outline" size={24} color={color} />
             ),
@@ -206,7 +196,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="task-tracker"
           options={{
-            tabBarLabel: "Tasks",
+            tabBarLabel: "",
             tabBarIcon: ({ color }) => (
               <Ionicons name="list-outline" size={24} color={color} />
             ),
@@ -216,7 +206,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="leave-tracker"
           options={{
-            tabBarLabel: "Leave",
+            tabBarLabel: "",
             tabBarIcon: ({ color }) => (
               <Ionicons name="calendar-outline" size={24} color={color} />
             ),
@@ -226,7 +216,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            tabBarLabel: "Profile",
+            tabBarLabel: "",
             tabBarIcon: ({ color }) => (
               <Ionicons name="person-outline" size={24} color={color} />
             ),

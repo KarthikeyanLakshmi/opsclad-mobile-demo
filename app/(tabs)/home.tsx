@@ -210,51 +210,72 @@ export default function HomeScreen() {
     return d.toLocaleString(undefined, { month: "long", year: "numeric" });
   }
 
-  return (
+ return (
     <View style={styles.container}>
       {loading && <LoadingOverlay />}
-      <Text style={styles.headerTitle}>OpsClad</Text>
-      <Calendar
-        markingType="multi-dot"
-        markedDates={markedDates}
-        onDayPress={handleDayPress}
-        onMonthChange={(m) => {
-          const mm = String(m.month).padStart(2, "0");
-          setCurrentMonth(`${m.year}-${mm}`);
-        }}
-        style={styles.calendar}
-        theme={{
-          todayTextColor: "#FF5722",
-          arrowColor: "#000",
-        }}
-      />
 
+      {/* TOP HEADER */}
+      <View style={styles.topHeader}>
+        <Text style={styles.appTitle}>DataClad</Text>
+      </View>
+
+      {/* CALENDAR CARD */}
+      <View style={styles.calendarCard}>
+        <Calendar
+          markingType="multi-dot"
+          markedDates={markedDates}
+          onDayPress={handleDayPress}
+          onMonthChange={(m) => {
+            const mm = String(m.month).padStart(2, "0");
+            setCurrentMonth(`${m.year}-${mm}`);
+          }}
+          style={styles.calendar}
+          theme={{
+            todayTextColor: "#1E3A8A",
+            arrowColor: "#1E40AF",
+          }}
+            renderHeader={(date) => {
+            const month = date.toString("MMMM yyyy"); 
+            return (
+              <Text style={{ 
+                fontSize: 20, 
+                fontWeight: "700", 
+                color: "#0F172A",
+                paddingVertical: 10,
+              }}>
+                {month}
+              </Text>
+            );
+          }}
+          
+        />
+      </View>
+
+      {/* MODAL */}
       <DateDetailsModal
         selectedDate={selectedInfo}
         onClose={() => setSelectedInfo(null)}
       />
 
-      {/* Monthly events list */}
-      <Text style={styles.monthHeader}>{getCurrentMonthLabel()} Events</Text>
+      {/* EVENTS TITLE */}
+      <Text style={styles.monthHeader}>Events</Text>
 
+      {/* EVENTS LIST */}
       <ScrollView style={styles.eventsContainer}>
         {monthEvents.length === 0 ? (
           <Text style={styles.noEventsText}>No events this month.</Text>
         ) : (
           monthEvents.map((ev) => (
             <View key={ev.id} style={styles.eventRow}>
-              
-              {/* DATE COLUMN */}
+              {/* LEFT DATE */}
               <View style={styles.eventDateCol}>
                 <Text style={styles.eventDateText}>
                   {formatPrettyDate(ev.date)}
                 </Text>
               </View>
 
-              {/* DETAILS */}
+              {/* RIGHT INFO */}
               <View style={styles.eventDetailCol}>
-                
-                {/* EVENT TYPE PILL */}
                 <Text
                   style={[
                     styles.eventTypePill,
@@ -268,104 +289,137 @@ export default function HomeScreen() {
                   {ev.type}
                 </Text>
 
-                {/* TITLE + DESCRIPTION IN ONE ROW */}
-                <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 4 }}>
+                <View style={styles.eventTextWrapper}>
                   <Text style={styles.eventTitle}>{ev.title}</Text>
-
                   {ev.description ? (
                     <Text style={styles.eventDesc}> • {ev.description}</Text>
                   ) : null}
                 </View>
-
               </View>
-
             </View>
           ))
         )}
       </ScrollView>
-
     </View>
   );
-}
 
+}
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 70,
-    paddingHorizontal: 20,
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8FAFC",
+    paddingTop: 0,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "600",
-    marginBottom: 15,
+
+  /* HEADER SECTION */
+  topHeader: {
+    paddingTop: 60,
+    paddingBottom: 25,
+    paddingHorizontal: 20,
+    backgroundColor: "#1E3A8A",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
-  calendar: {
-    borderRadius: 10,
-    elevation: 3,
+  appTitle: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: "white",
+  },
+
+  /* CALENDAR CARD */
+  calendarCard: {
+    marginTop: -20,
+    marginHorizontal: 15,
+    backgroundColor: "white",
+    borderRadius: 18,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 5,
     marginBottom: 20,
   },
-  monthHeader: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
+
+  calendar: {
+    borderRadius: 15,
   },
+
+  /* MONTH HEADER */
+  monthHeader: {
+    fontSize: 20,
+    fontWeight: "700",
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    color: "#0F172A",
+  },
+
+  /* EVENTS LIST */
   eventsContainer: {
     flex: 1,
-    marginBottom: 10,
+    paddingHorizontal: 20,
   },
+
   noEventsText: {
-    fontSize: 14,
-    color: "#777",
+    fontSize: 15,
+    color: "#6B7280",
     marginTop: 10,
+    textAlign: "center",
   },
+
+  /* EVENT ROW */
   eventRow: {
     flexDirection: "row",
-    paddingVertical: 14,
-    borderBottomColor: "#e5e7eb",
+    paddingVertical: 15,
     borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
+
   eventDateCol: {
     width: 110,
-    paddingRight: 10,
   },
   eventDateText: {
     fontWeight: "700",
-    color: "#222",
+    color: "#1E293B",
     fontSize: 15,
   },
+
   eventDetailCol: {
     flex: 1,
   },
-  eventTypePillWrapper: {
-    marginBottom: 4,
-  },
+
+  /* EVENT TYPE PILL */
   eventTypePill: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 999,
     fontSize: 11,
-    color: "#fff",
-    overflow: "hidden",
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "white",
+    marginBottom: 6,
   },
-  ptoPill: {
-    backgroundColor: "#22c55e",
+  ptoPill: { backgroundColor: "#22C55E" },
+  birthdayPill: { backgroundColor: "#EAB308" },
+  holidayPill: { backgroundColor: "#F97316" },
+
+  /* EVENT TEXT ROW */
+  eventTextWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
-  birthdayPill: {
-    backgroundColor: "#eab308",
-  },
-  holidayPill: {
-    backgroundColor: "#f97316",
-  },
+
   eventTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111",
+    color: "#0F172A",
   },
   eventDesc: {
     fontSize: 15,
-    color: "#555",
+    color: "#475569",
   },
 });

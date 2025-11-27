@@ -3,57 +3,73 @@ import {
   View,
   Text,
   TextInput,
-  ActivityIndicator,
   TouchableOpacity,
-  ScrollView,
-  StyleSheet,
+  ActivityIndicator,
+  FlatList,
   Alert,
+  StyleSheet,
 } from "react-native";
-import { supabase } from "@/src/lib/supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
+import { supabase } from "@/src/lib/supabase";
 
-type TaskStatus = "completed" | "in_progress" | "on_hold" | "blocked";
+// ----------------------
+// Status Options
+// ----------------------
+const TASK_STATUS_OPTIONS = [
+  { value: "completed", label: "Completed" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "on_hold", label: "On Hold" },
+  { value: "blocked", label: "Blocked" },
+];
 
-interface Task {
+// ----------------------
+// Badge Colors
+// ----------------------
+const getStatusBadgeStyle = (status: string) => {
+  switch (status) {
+    case "completed":
+      return { backgroundColor: "#7ba48b", color: "white" }; // green
+    case "in_progress":
+      return { backgroundColor: "#95bdff", color: "white" }; // blue
+    case "on_hold":
+      return { backgroundColor: "#f0ad4e", color: "white" }; // yellow
+    case "blocked":
+      return { backgroundColor: "#d9534f", color: "white" }; // red
+    default:
+      return { backgroundColor: "#ccc", color: "black" };
+  }
+};
+
+// ----------------------
+// Task Type
+// ----------------------
+export interface Task {
   id: string;
   task_id: string;
   description: string;
   owner: string;
   department: string;
-  start_date: string;
-  estimated_completion_date: string;
-  actual_completion_date: string;
-  status: TaskStatus;
-  pending_changes?: string | null;
+  start_date?: string;
+  estimated_completion_date?: string;
+  actual_completion_date?: string;
+  status: string;
+  pending_changes?: any;
   created_at?: string;
   updated_at?: string;
 }
 
-export default function TaskTrackerScreen() {
+export default function MyTasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editingValues, setEditingValues] = useState<Partial<Task>>({});
-  const [currentUser, setCurrentUser] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Partial<Task>>({});
 
-  // Fetch current user from stored profile
-  useEffect(() => {
-    async function loadUser() {
-      const profile = await AsyncStorage.getItem("profile");
-      if (profile) {
-        const parsed = JSON.parse(profile);
-        setCurrentUser(parsed.username);
-      }
-    }
-    loadUser();
-  }, []);
+  // TODO: Replace with actual logged-in name
+  const currentUser = "Karthikeyan Lakshmi";
 
-  // Load tasks
-  useEffect(() => {
-    if (currentUser) fetchTasks();
-  }, [currentUser]);
-
+  // ----------------------
+  // Fetch Tasks
+  // ----------------------
   const fetchTasks = async () => {
     setLoading(true);
 
@@ -64,239 +80,288 @@ export default function TaskTrackerScreen() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      Alert.alert("Error", "Failed to load tasks");
-      console.log(error);
+      Alert.alert("Error", error.message);
       setLoading(false);
       return;
     }
 
-    const formatted = data.map((t) => ({
+    const formatted = (data ?? []).map((t: any) => ({
       ...t,
-      start_date: t.start_date ?? "",
-      estimated_completion_date: t.estimated_completion_date ?? "",
-      actual_completion_date: t.actual_completion_date ?? "",
+      start_date: t.start_date?.split("T")[0] ?? "",
+      estimated_completion_date:
+        t.estimated_completion_date?.split("T")[0] ?? "",
+      actual_completion_date: t.actual_completion_date?.split("T")[0] ?? "",
     }));
 
-    setTasks(formatted as Task[]);
+    setTasks(formatted);
     setLoading(false);
   };
 
-  const startEditing = (task: Task) => {
-    setEditingTaskId(task.id);
-    setEditingValues({
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // ----------------------
+  // Editing
+  // ----------------------
+  const startEdit = (task: Task) => {
+    setEditingId(task.id);
+    setEditValues({
       description: task.description,
       estimated_completion_date: task.estimated_completion_date,
       actual_completion_date: task.actual_completion_date,
       status: task.status,
-      task_id: task.task_id,
     });
   };
 
-  const cancelEditing = () => {
-    setEditingTaskId(null);
-    setEditingValues({});
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValues({});
   };
 
   const saveEdit = async () => {
-    if (!editingTaskId) return;
+    if (!editingId) return;
 
     const { error } = await supabase
       .from("task_overviews")
       .update({
         pending_changes: JSON.stringify({
-          ...editingValues,
+          ...editValues,
           changed_by: currentUser,
           change_requested_at: new Date().toISOString(),
         }),
       })
-      .eq("id", editingTaskId);
+      .eq("id", editingId);
 
     if (error) {
-      Alert.alert("Error", "Failed to submit changes");
+      Alert.alert("Error", error.message);
       return;
     }
 
-    Alert.alert("Success", "Changes submitted for manager approval");
-
-    cancelEditing();
+    Alert.alert("Success", "Changes submitted for approval!");
     fetchTasks();
+    cancelEdit();
   };
 
-  if (loading) {
+  // ----------------------
+  // Render Each Task
+  // ----------------------
+  const renderItem = ({ item }: { item: Task }) => {
+    const isEditing = editingId === item.id;
+
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>Task: {item.task_id}</Text>
+
+        {isEditing ? (
+          <>
+            {/* DESCRIPTION */}
+            <TextInput
+              style={styles.input}
+              value={editValues.description}
+              onChangeText={(t) =>
+                setEditValues({ ...editValues, description: t })
+              }
+              placeholder="Description"
+            />
+
+            {/* EST COMPLETION */}
+            <TextInput
+              style={styles.input}
+              value={editValues.estimated_completion_date}
+              onChangeText={(t) =>
+                setEditValues({
+                  ...editValues,
+                  estimated_completion_date: t,
+                })
+              }
+              placeholder="Estimated Completion (YYYY-MM-DD)"
+            />
+
+            {/* ACTUAL COMPLETION */}
+            <TextInput
+              style={styles.input}
+              value={editValues.actual_completion_date}
+              onChangeText={(t) =>
+                setEditValues({
+                  ...editValues,
+                  actual_completion_date: t,
+                })
+              }
+              placeholder="Actual Completion (YYYY-MM-DD)"
+            />
+
+            {/* STATUS DROPDOWN */}
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={editValues.status}
+                onValueChange={(value) =>
+                  setEditValues({ ...editValues, status: value })
+                }
+              >
+                {TASK_STATUS_OPTIONS.map((opt) => (
+                  <Picker.Item
+                    key={opt.value}
+                    label={opt.label}
+                    value={opt.value}
+                  />
+                ))}
+              </Picker>
+            </View>
+
+            {/* BUTTONS */}
+            <View style={styles.row}>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
+                <Text style={styles.btnText}>Save</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.cancelBtn} onPress={cancelEdit}>
+                <Text style={styles.btnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text>Description: {item.description}</Text>
+            <Text>Dept: {item.department}</Text>
+            <Text>Start: {item.start_date}</Text>
+            <Text>Est: {item.estimated_completion_date}</Text>
+            <Text>Actual: {item.actual_completion_date || "N/A"}</Text>
+
+            {/* STATUS BADGE */}
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: getStatusBadgeStyle(item.status).backgroundColor,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.badgeText,
+                  { color: getStatusBadgeStyle(item.status).color },
+                ]}
+              >
+                {
+                  TASK_STATUS_OPTIONS.find((s) => s.value === item.status)
+                    ?.label
+                }
+              </Text>
+            </View>
+
+            {/* PENDING */}
+            {item.pending_changes && (
+              <Text style={{ color: "orange", marginTop: 4 }}>
+                Pending Approval
+              </Text>
+            )}
+
+            {/* EDIT BUTTON */}
+            <TouchableOpacity
+              style={[
+                styles.editBtn,
+                item.pending_changes && { backgroundColor: "#aaa" },
+              ]}
+              disabled={!!item.pending_changes}
+              onPress={() => startEdit(item)}
+            >
+              <Text style={styles.btnText}>
+                {item.pending_changes ? "Pending" : "Edit"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+    );
+  };
+
+  // ----------------------
+  // Loading UI
+  // ----------------------
+  if (loading)
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
       </View>
     );
-  }
 
+  // ----------------------
+  // Output
+  // ----------------------
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>My Tasks</Text>
-
-      {tasks.length === 0 && (
-        <Text style={styles.noTasks}>No tasks assigned yet.</Text>
-      )}
-
-      {tasks.map((task) => {
-        const isEditing = editingTaskId === task.id;
-        return (
-          <View key={task.id} style={styles.card}>
-            {/* TASK ID */}
-            <Text style={styles.label}>Task ID</Text>
-            <TextInput
-              style={[styles.input, styles.disabledInput]}
-              value={editingValues.task_id ?? task.task_id}
-              editable={false}
-            />
-
-            {/* DESCRIPTION */}
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={styles.input}
-              multiline
-              value={isEditing ? editingValues.description ?? "" : task.description}
-              onChangeText={(t) =>
-                setEditingValues({
-                  ...editingValues,
-                  description: t ?? "",
-                })
-              }
-              editable={isEditing}
-            />
-
-            {/* DATES */}
-            <Text style={styles.label}>Estimated Completion</Text>
-            <TextInput
-              style={styles.input}
-              value={
-                isEditing
-                  ? editingValues.estimated_completion_date ?? ""
-                  : task.estimated_completion_date
-              }
-              onChangeText={(t) =>
-                setEditingValues({
-                  ...editingValues,
-                  estimated_completion_date: t ?? "",
-                })
-              }
-              editable={isEditing}
-              placeholder="YYYY-MM-DD"
-            />
-
-            <Text style={styles.label}>Actual Completion</Text>
-            <TextInput
-              style={styles.input}
-              value={
-                isEditing
-                  ? editingValues.actual_completion_date ?? ""
-                  : task.actual_completion_date
-              }
-              onChangeText={(t) =>
-                setEditingValues({
-                  ...editingValues,
-                  actual_completion_date: t ?? "",
-                })
-              }
-              editable={isEditing}
-              placeholder="YYYY-MM-DD"
-            />
-
-            {/* STATUS */}
-            <Text style={styles.label}>Status</Text>
-            {isEditing ? (
-              <Picker
-                selectedValue={editingValues.status ?? task.status}
-                onValueChange={(v) =>
-                  setEditingValues({ ...editingValues, status: v })
-                }
-              >
-                <Picker.Item label="In Progress" value="in_progress" />
-                <Picker.Item label="Completed" value="completed" />
-                <Picker.Item label="On Hold" value="on_hold" />
-                <Picker.Item label="Blocked" value="blocked" />
-              </Picker>
-            ) : (
-              <Text style={styles.status}>{task.status}</Text>
-            )}
-
-            {/* ACTION BUTTONS */}
-            {isEditing ? (
-              <View style={styles.row}>
-                <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
-                  <Text style={styles.btnText}>Submit</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.cancelBtn} onPress={cancelEditing}>
-                  <Text style={styles.btnText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={() => startEditing(task)}
-                disabled={!!task.pending_changes}
-              >
-                <Text style={styles.btnText}>
-                  {task.pending_changes ? "Pending..." : "Edit"}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-      })}
-    </ScrollView>
+    <View style={{ padding: 16 }}>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        ListEmptyComponent={
+          <Text style={{ textAlign: "center", marginTop: 30 }}>
+            No tasks found.
+          </Text>
+        }
+      />
+    </View>
   );
 }
 
-/* ---------------- STYLES ---------------- */
-
+// ----------------------
+// Styles
+// ----------------------
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 16 },
-  noTasks: { fontSize: 16, color: "#777", marginTop: 20 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "white",
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    elevation: 3,
+    marginBottom: 12,
+    borderRadius: 8,
+    elevation: 2,
   },
-  label: { marginTop: 12, fontWeight: "600", marginBottom: 4 },
+  title: { fontWeight: "bold", fontSize: 16, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-  },
-  disabledInput: { backgroundColor: "#f0f0f0" },
-  status: {
-    padding: 8,
-    backgroundColor: "#ddd",
+    borderColor: "#ddd",
     borderRadius: 6,
-    marginTop: 4,
+    padding: 8,
+    marginBottom: 8,
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 6,
+    marginBottom: 10,
   },
   editBtn: {
-    marginTop: 14,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#ff5252",
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 6,
+    marginTop: 10,
   },
   saveBtn: {
-    flex: 1,
     backgroundColor: "green",
-    padding: 12,
-    borderRadius: 8,
-    marginRight: 6,
+    padding: 10,
+    borderRadius: 6,
+    flex: 1,
+    marginRight: 5,
   },
   cancelBtn: {
+    backgroundColor: "gray",
+    padding: 10,
+    borderRadius: 6,
     flex: 1,
-    backgroundColor: "red",
-    padding: 12,
-    borderRadius: 8,
-    marginLeft: 6,
+    marginLeft: 5,
   },
-  btnText: { color: "white", textAlign: "center", fontWeight: "600" },
-  row: { flexDirection: "row", marginTop: 12 },
+  badge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginTop: 6,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  btnText: { color: "white", textAlign: "center" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  row: { flexDirection: "row", marginTop: 10 },
 });

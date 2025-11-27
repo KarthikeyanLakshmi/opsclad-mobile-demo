@@ -40,9 +40,6 @@ export default function LoginScreen() {
 
       {/* Logo */}
       <Image source={logo} style={styles.logo} resizeMode="contain" />
-
-      <Text style={styles.title}>Welcome to OpsClad</Text>
-
       <TextInput
         style={styles.input}
         placeholder="Email"

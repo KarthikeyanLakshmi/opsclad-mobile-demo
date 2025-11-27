@@ -11,25 +11,18 @@ export default function ProfileScreen() {
     try {
       setLoading(true);
 
-      // 1️⃣ Get current user from Supabase Auth
-      const { data: authData, error: authErr } = await supabase.auth.getUser();
-
-      if (authErr || !authData?.user) {
-        setLoading(false);
-        return;
-      }
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) return;
 
       const userId = authData.user.id;
 
-      // 2️⃣ Fetch profile (from profiles table)
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
 
-      // 3️⃣ Fetch user role
-      const { data: roleData, error: roleError } = await supabase
+      const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
@@ -51,7 +44,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#1D4ED8" />
       </View>
     );
   }
@@ -59,43 +52,83 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <View style={styles.center}>
-        <Text>No profile found</Text>
+        <Text style={{ fontSize: 18 }}>No profile found</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Profile</Text>
+      {/* Name as the PAGE HEADER */}
+      <Text style={styles.nameHeader}>{profile.username}</Text>
 
-      <Text style={styles.label}>Name: <Text style={styles.value}>{profile.username}</Text></Text>
-      <Text style={styles.label}>Email: <Text style={styles.value}>{profile.email}</Text></Text>
-      <Text style={styles.label}>Employee ID: <Text style={styles.value}>{profile.employee_id}</Text></Text>
+      {/* Card */}
+      <View style={styles.card}>
+        <Text style={styles.label}>
+          Email: <Text style={styles.value}>{profile.email}</Text>
+        </Text>
 
-      <Text style={styles.label}>
-        Birthday: <Text style={styles.value}>{profile.birthday || "Not provided"}</Text>
-      </Text>
+        <Text style={styles.label}>
+          Employee ID: <Text style={styles.value}>{profile.employee_id}</Text>
+        </Text>
 
-      <Text style={styles.label}>
-        Role: <Text style={styles.value}>{role}</Text>
-      </Text>
+        <Text style={styles.label}>
+          Birthday:{" "}
+          <Text style={styles.value}>
+            {profile.birthday || "Not provided"}
+          </Text>
+        </Text>
+
+        <Text style={styles.label}>
+          Role: <Text style={styles.value}>{role}</Text>
+        </Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingTop: 80 },
-  header: { fontSize: 28, fontWeight: "bold", marginBottom: 20 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: {
+    padding: 25,
+    paddingTop: 70,
+    backgroundColor: "#F3F4F6",
+    flex: 1,
+  },
+
+  nameHeader: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 25,
+    textAlign: "center",
+  },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+    padding: 25,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
 
   label: {
-    fontSize: 18,
-    marginBottom: 10,
+    fontSize: 17,
     fontWeight: "600",
+    marginBottom: 12,
+    color: "#374151",
   },
 
   value: {
     fontWeight: "400",
-    color: "#333",
+    color: "#1F2937",
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
