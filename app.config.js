@@ -24,7 +24,7 @@ export default {
       versionCode: 1,
 
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
+        backgroundColor: "#2f578c",
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -47,7 +47,7 @@ export default {
           image: "./assets/images/splash-icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#2f578c",
           dark: {
             backgroundColor: "#000000",
           },
@@ -62,13 +62,10 @@ export default {
     },
 
     extra: {
-      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
 
-      SUPABASE_URL: process.env.SUPABASE_URL,
-      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
-
-      API_BASE_URL: process.env.API_BASE_URL,
+      apiBaseUrl: process.env.API_BASE_URL,
 
       eas: {
         projectId: "dd077a3b-dab8-4af2-be95-f629afb8c6aa",
