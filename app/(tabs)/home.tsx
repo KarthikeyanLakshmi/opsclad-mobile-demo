@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Alert,
   ScrollView,
 } from "react-native";
@@ -23,23 +22,17 @@ import {
 // Normalize ANY date format
 function normalizeDate(date: string | null): string | null {
   if (!date) return null;
-
-  // ISO format
   if (date.includes("T")) return date.split("T")[0];
-
-  // DD/MM/YYYY
   if (date.includes("/")) {
     const [day, month, year] = date.split("/");
     return `${year}-${month}-${day}`;
   }
-
   return date;
 }
 
 function formatPrettyDate(dateStr: string) {
   try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString();
+    return new Date(dateStr).toLocaleDateString();
   } catch {
     return dateStr;
   }
@@ -49,7 +42,7 @@ type EventType = "PTO" | "Birthday" | "Holiday";
 
 interface MonthEvent {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   type: EventType;
   title: string;
   description?: string;
@@ -59,28 +52,23 @@ export default function HomeScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [markedDates, setMarkedDates] = useState<any>({});
-  const [selectedInfo, setSelectedInfo] = useState<SelectedDateInfo | null>(
-    null
-  );
+  const [selectedInfo, setSelectedInfo] = useState<SelectedDateInfo | null>(null);
 
   const [ptoRecords, setPtoRecords] = useState<PTORecord[]>([]);
   const [birthdays, setBirthdays] = useState<Employee[]>([]);
   const [holidays, setHolidays] = useState<HolidayRecord[]>([]);
 
-  // Track currently visible month (YYYY-MM)
+  // Visible month
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
     const today = new Date();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    return `${today.getFullYear()}-${m}`;
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  // Derived events for the current month
   const [monthEvents, setMonthEvents] = useState<MonthEvent[]>([]);
 
-  // Load all data
+  // Load data
   async function loadCalendarData() {
     setLoading(true);
-
     try {
       const { data: ptoData } = await supabase.from("pto_records").select("*");
       setPtoRecords(ptoData || []);
@@ -103,72 +91,81 @@ export default function HomeScreen() {
     loadCalendarData();
   }, []);
 
-  // Build markers for calendar
+  // 🔥 BUILD MARKERS WITH MAX 3 DOT LIMIT
   useEffect(() => {
     const marks: any = {};
+    const currentYear = new Date().getFullYear();
 
-    // PTO
+    function addDot(date: string, color: string) {
+      if (!marks[date]) marks[date] = { dots: [] };
+      if (marks[date].dots.length < 3) {
+        marks[date].dots.push({ color });
+      }
+    }
+
+    // PTO dots
     ptoRecords.forEach((p) => {
-      if (!marks[p.date]) marks[p.date] = { dots: [] };
-      marks[p.date].dots.push({ color: "green" });
+      addDot(p.date, "green");
     });
 
-    // Birthdays
+    // Birthday dots (converted to current year)
     birthdays.forEach((b) => {
-      const cleanDate = normalizeDate(b.birthday);
-      if (!cleanDate) return;
-
-      if (!marks[cleanDate]) marks[cleanDate] = { dots: [] };
-      marks[cleanDate].dots.push({ color: "yellow" });
+      const clean = normalizeDate(b.birthday);
+      if (!clean) return;
+      const [, mm, dd] = clean.split("-");
+      const birthdayDate = `${currentYear}-${mm}-${dd}`;
+      addDot(birthdayDate, "yellow");
     });
 
-    // Holidays
+    // Holiday dots
     holidays.forEach((h) => {
-      if (!marks[h.holiday_date]) marks[h.holiday_date] = { dots: [] };
-      marks[h.holiday_date].dots.push({ color: "orange" });
+      addDot(h.holiday_date, "orange");
     });
 
     setMarkedDates(marks);
   }, [ptoRecords, birthdays, holidays]);
 
-  // Build monthEvents whenever data or currentMonth changes
+  // 🔥 BUILD MONTH EVENTS (Birthdays converted to current year)
   useEffect(() => {
     const events: MonthEvent[] = [];
+    const [year, month] = currentMonth.split("-");
+    const currentYear = Number(year);
 
-    // PTO events (date: p.date)
-    ptoRecords.forEach((p, index) => {
-      if (p.date && p.date.startsWith(currentMonth)) {
+    // PTO
+    ptoRecords.forEach((p, idx) => {
+      if (p.date.startsWith(currentMonth)) {
         events.push({
-          id: `pto-${p.id ?? index}`,
+          id: `pto-${p.id}`,
           date: p.date,
           type: "PTO",
-          title: p.employee_name
-            ? `PTO - ${p.employee_name}`
-            : `PTO - ${p.employee_id}`,
+          title: p.employee_name ? `PTO - ${p.employee_name}` : `PTO - ${p.employee_id}`,
           description: `${p.hours} hours - ${p.activity}`,
         });
       }
     });
 
-    // Birthday events (date: normalized birthday)
-    birthdays.forEach((b, index) => {
-      const cleanDate = normalizeDate(b.birthday);
-      if (!cleanDate) return;
-      if (cleanDate.startsWith(currentMonth)) {
+    // Birthday events (repeat yearly)
+    birthdays.forEach((b) => {
+      const clean = normalizeDate(b.birthday);
+      if (!clean) return;
+
+      const [, mm, dd] = clean.split("-");
+      if (mm === month) {
+        const birthdayDate = `${currentYear}-${mm}-${dd}`;
         events.push({
-          id: `birthday-${b.id ?? index}`,
-          date: cleanDate,
+          id: `birthday-${b.id}`,
+          date: birthdayDate,
           type: "Birthday",
           title: `Birthday - ${b.name}`,
         });
       }
     });
 
-    // Holiday events (date: h.holiday_date)
-    holidays.forEach((h, index) => {
-      if (h.holiday_date && h.holiday_date.startsWith(currentMonth)) {
+    // Holidays
+    holidays.forEach((h) => {
+      if (h.holiday_date.startsWith(currentMonth)) {
         events.push({
-          id: `holiday-${h.id ?? index}`,
+          id: `holiday-${h.id}`,
           date: h.holiday_date,
           type: "Holiday",
           title: h.holiday,
@@ -177,49 +174,48 @@ export default function HomeScreen() {
       }
     });
 
-    // Sort by date ascending
-    events.sort((a, b) => {
-      if (a.date < b.date) return -1;
-      if (a.date > b.date) return 1;
-      return 0;
-    });
-
+    // Sort by date
+    events.sort((a, b) => a.date.localeCompare(b.date));
     setMonthEvents(events);
   }, [currentMonth, ptoRecords, birthdays, holidays]);
 
-  // On day press
+  // DAY PRESS HANDLER (MODAL)
   const handleDayPress = (day: any) => {
-    const date = day.dateString;
+    const clickedDate = day.dateString;
+    const currentYear = new Date().getFullYear();
 
     const selected: SelectedDateInfo = {
-      date: new Date(date),
-      ptoRecords: ptoRecords.filter((p) => p.date === date),
-      birthdays: birthdays.filter(
-        (b) => normalizeDate(b.birthday) === date
-      ),
-      holidays: holidays.filter((h) => h.holiday_date === date),
+      date: new Date(clickedDate),
+
+      // PTO
+      ptoRecords: ptoRecords.filter((p) => p.date === clickedDate),
+
+      // Birthday (map to current year)
+      birthdays: birthdays.filter((b) => {
+        const clean = normalizeDate(b.birthday);
+        if (!clean) return false;
+        const [, mm, dd] = clean.split("-");
+        const dateThisYear = `${currentYear}-${mm}-${dd}`;
+        return dateThisYear === clickedDate;
+      }),
+
+      // Holiday
+      holidays: holidays.filter((h) => h.holiday_date === clickedDate),
     };
 
     setSelectedInfo(selected);
   };
 
-  // Determine human-readable month label
-  function getCurrentMonthLabel() {
-    const [year, month] = currentMonth.split("-");
-    const d = new Date(Number(year), Number(month) - 1, 1);
-    return d.toLocaleString(undefined, { month: "long", year: "numeric" });
-  }
-
- return (
+  return (
     <View style={styles.container}>
       {loading && <LoadingOverlay />}
 
-      {/* TOP HEADER */}
-      <View style={styles.topHeader}>
-        <Text style={styles.appTitle}>DataClad</Text>
+      {/* Simple Header */}
+      <View style={styles.simpleHeader}>
+        <Text style={styles.simpleHeaderTitle}>DataClad</Text>
       </View>
 
-      {/* CALENDAR CARD */}
+      {/* Calendar */}
       <View style={styles.calendarCard}>
         <Calendar
           markingType="multi-dot"
@@ -230,51 +226,48 @@ export default function HomeScreen() {
             setCurrentMonth(`${m.year}-${mm}`);
           }}
           style={styles.calendar}
+          renderHeader={(date) => (
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "600",
+                color: "#0F172A",
+                paddingVertical: 6,
+                textAlign: "center",
+              }}
+            >
+              {date.toString("MMMM yyyy")}
+            </Text>
+          )}
           theme={{
             todayTextColor: "#1E3A8A",
             arrowColor: "#1E40AF",
           }}
-            renderHeader={(date) => {
-            const month = date.toString("MMMM yyyy"); 
-            return (
-              <Text style={{ 
-                fontSize: 20, 
-                fontWeight: "700", 
-                color: "#0F172A",
-                paddingVertical: 10,
-              }}>
-                {month}
-              </Text>
-            );
-          }}
-          
         />
       </View>
 
-      {/* MODAL */}
+      {/* Modal */}
       <DateDetailsModal
         selectedDate={selectedInfo}
         onClose={() => setSelectedInfo(null)}
       />
 
-      {/* EVENTS TITLE */}
+      {/* Events */}
+
       <Text style={styles.monthHeader}>Events</Text>
 
-      {/* EVENTS LIST */}
       <ScrollView style={styles.eventsContainer}>
         {monthEvents.length === 0 ? (
           <Text style={styles.noEventsText}>No events this month.</Text>
         ) : (
           monthEvents.map((ev) => (
             <View key={ev.id} style={styles.eventRow}>
-              {/* LEFT DATE */}
               <View style={styles.eventDateCol}>
                 <Text style={styles.eventDateText}>
                   {formatPrettyDate(ev.date)}
                 </Text>
               </View>
 
-              {/* RIGHT INFO */}
               <View style={styles.eventDetailCol}>
                 <Text
                   style={[
@@ -291,9 +284,9 @@ export default function HomeScreen() {
 
                 <View style={styles.eventTextWrapper}>
                   <Text style={styles.eventTitle}>{ev.title}</Text>
-                  {ev.description ? (
+                  {ev.description && (
                     <Text style={styles.eventDesc}> • {ev.description}</Text>
-                  ) : null}
+                  )}
                 </View>
               </View>
             </View>
@@ -302,54 +295,39 @@ export default function HomeScreen() {
       </ScrollView>
     </View>
   );
-
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
-    paddingTop: 0,
   },
-
-  /* HEADER SECTION */
-  topHeader: {
-    paddingTop: 60,
-    paddingBottom: 25,
+  simpleHeader: {
+    paddingTop: 55,
+    paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: "#1E3A8A",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
   },
-  appTitle: {
-    fontSize: 30,
+  simpleHeaderTitle: {
+    fontSize: 26,
     fontWeight: "700",
-    color: "white",
+    color: "#0F172A",
   },
-
-  /* CALENDAR CARD */
   calendarCard: {
-    marginTop: -20,
+    marginTop: 10,
     marginHorizontal: 15,
     backgroundColor: "white",
     borderRadius: 18,
     padding: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 3,
     marginBottom: 20,
   },
-
   calendar: {
     borderRadius: 15,
   },
-
-  /* MONTH HEADER */
   monthHeader: {
     fontSize: 20,
     fontWeight: "700",
@@ -357,28 +335,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#0F172A",
   },
-
-  /* EVENTS LIST */
   eventsContainer: {
     flex: 1,
     paddingHorizontal: 20,
   },
-
   noEventsText: {
     fontSize: 15,
     color: "#6B7280",
     marginTop: 10,
     textAlign: "center",
   },
-
-  /* EVENT ROW */
   eventRow: {
     flexDirection: "row",
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
   },
-
   eventDateCol: {
     width: 110,
   },
@@ -387,17 +359,18 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     fontSize: 15,
   },
-
   eventDetailCol: {
     flex: 1,
   },
-
-  /* EVENT TYPE PILL */
+  eventTextWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
   eventTypePill: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
+    borderRadius: 50,
     fontSize: 11,
     fontWeight: "700",
     color: "white",
@@ -406,13 +379,6 @@ const styles = StyleSheet.create({
   ptoPill: { backgroundColor: "#22C55E" },
   birthdayPill: { backgroundColor: "#EAB308" },
   holidayPill: { backgroundColor: "#F97316" },
-
-  /* EVENT TEXT ROW */
-  eventTextWrapper: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-
   eventTitle: {
     fontSize: 16,
     fontWeight: "700",

@@ -53,7 +53,6 @@ export default {
           },
         },
       ],
-      
       "expo-secure-store",
     ],
 
@@ -63,9 +62,14 @@ export default {
     },
 
     extra: {
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      apiBaseUrl: process.env.API_BASE_URL,
+      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+
+      API_BASE_URL: process.env.API_BASE_URL,
+
       eas: {
         projectId: "dd077a3b-dab8-4af2-be95-f629afb8c6aa",
       },
